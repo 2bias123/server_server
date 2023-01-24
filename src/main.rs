@@ -1,5 +1,8 @@
-use std::{net::{TcpListener, TcpStream}, io::{Read, Write, BufReader, BufRead}};
-use std::fs::File;
+use std::{
+    net::{TcpListener, TcpStream}, 
+    io::{ Write, BufReader, BufRead, ErrorKind},
+    fs::{File}
+};
 
 
 fn main() {
@@ -19,35 +22,39 @@ fn main() {
 }
 
 //Runs when someone connects to the server
-fn handle_connection(mut stream: TcpStream){
+fn handle_connection(stream: TcpStream){
 
-
-    //Creates a new text file
-    let mut file = match File::create("helloe.txt") {
-        Ok(file) => file,
-        Err(error) =>{
-            eprintln!("Something went wrong{}",error);
-            return;
-        },
-    };
 
     //I use a buffreader beacause its more efficient than read
     let mut reader = BufReader::new(stream);
 
-    
+    let mut file = createfile("Helloe.txt");
+
     loop {
         let mut buffer = String::new();
         //Gets input from the client 
         let _input = reader.read_line(&mut buffer).unwrap();
 
         //Writes back to the client when the 
-        reader.get_mut().write(buffer.as_bytes()).unwrap();
+        reader.get_mut().write(&buffer.as_bytes()).unwrap();
 
-        file.write()
+        file.write(&buffer.as_bytes()).unwrap();
     }
 }
 
-
-
-
+fn createfile(filename: &str) -> File{
+     //Creates a new text file
+     let file = match File::options().read(true).write(true).open(filename){
+        Ok(file) => file,
+        Err(err) => match err.kind() {
+            ErrorKind::NotFound => match File::create(filename) {
+                Ok(file_created) => file_created,
+                Err(err) => panic!("Couldnt create file {:?}",err),
+            }, other_error => {
+                panic!("Couldnt find the given file {:?}",other_error)
+            }
+        },
+    };
+    file
+}
 
